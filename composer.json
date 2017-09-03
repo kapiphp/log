@@ -1,0 +1,31 @@
+{
+    "name": "kapi/log",
+    "description": "Kapi Log Component",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Adrien Sasia",
+            "email": "a.sasia.ldy@gmail.com"
+        }
+    ],
+    "support": {
+        "email": "a.sasia.ldy@gmail.com",
+        "issues": "https://github.com/kapiphp/log/issues",
+        "forum": "https://stackoverflow.com/tags/kapi+log",
+        "wiki": "https://github.com/kapiphp/log/wiki",
+        "source": "https://github.com/kapiphp/log"
+    },
+    "require": {
+        "php": "~7.1",
+        "psr/log": "^1.0"
+    },
+    "provide": {
+        "psr/log-implementation": "1.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Kapi\\Log\\": ""
+        }
+    }
+}
