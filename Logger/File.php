@@ -6,9 +6,96 @@ use Psr\Log\AbstractLogger;
 
 class File extends AbstractLogger
 {
-    public function __construct()
+    /**
+     * @var array
+     */
+    private $config;
+
+    /**
+     * @var mixed
+     */
+    private $path;
+
+    /**
+     * @var string
+     */
+    private $file;
+
+    /**
+     * @var mixed
+     */
+    private $size;
+
+    public function __construct(array $config = [])
     {
-        
+        $this->setConfig($config, false);
+
+        if (!empty($this->config['path'])) {
+            $this->path = $this->config['path'];
+        }
+        if ($this->path && !is_dir($this->path)) {
+            mkdir($this->path, 0775, true);
+        }
+
+        if (!empty($this->config['file'])) {
+            $this->file = $this->config['file'];
+            if (substr($this->file, -4) !== '.log') {
+                $this->file .= '.log';
+            }
+        }
+
+        if (!empty($this->config['size'])) {
+            if (is_numeric($this->config['size'])) {
+                $this->size = (int)$this->config['size'];
+            } else {
+                $this->size = $this->parseFileSize($this->config['size']);
+            }
+        }
+    }
+
+    public function setConfig(array $config, $merge = true)
+    {
+        if (!$merge) $this->config = Config::read('log');
+        $this->config = array_merge($this->config, $config);
+    }
+
+    /**
+     * Converts file size from human readable string to bytes
+     *
+     * @param string $size    Size in human readable string like '5MB', '5M', '500B', '50kb' etc.
+     * @param mixed  $default Value to be returned when invalid size was used, for example 'Unknown type'
+     * @return mixed Number of bytes as integer on success, `$default` on failure if not false
+     * @throws \InvalidArgumentException On invalid Unit type.
+     */
+    private function parseFileSize($size, $default = false)
+    {
+        if (ctype_digit($size)) {
+            return (int)$size;
+        }
+        $size = strtoupper($size);
+
+        $l = -2;
+        $i = array_search(substr($size, -2), ['KB', 'MB', 'GB', 'TB', 'PB']);
+        if ($i === false) {
+            $l = -1;
+            $i = array_search(substr($size, -1), ['K', 'M', 'G', 'T', 'P']);
+        }
+        if ($i !== false) {
+            $size = substr($size, 0, $l);
+
+            return $size * pow(1024, $i + 1);
+        }
+
+        if (substr($size, -1) === 'B' && ctype_digit(substr($size, 0, -1))) {
+            $size = substr($size, 0, -1);
+
+            return (int)$size;
+        }
+
+        if ($default !== false) {
+            return $default;
+        }
+        throw new \InvalidArgumentException('No unit type.');
     }
 
     /**
@@ -16,16 +103,16 @@ class File extends AbstractLogger
      */
     public function log($level, $message, array $context = [])
     {
-        if (!(empty($this->_config['levels']) || in_array($level, $this->_config['levels']))) return;
+        if (!(empty($this->config['levels']) || in_array($level, $this->config['levels']))) return;
 
         $message = $this->format($message, $context);
         $output = date('Y-m-d H:i:s') . ' ' . ucfirst($level) . ': ' . $message . "\n";
         $filename = $this->getFilename($level);
-        if ($this->_size) {
+        if ($this->size) {
             $this->rotateFile($filename);
         }
 
-        $pathname = $this->_path . DS . $filename;
+        $pathname = $this->path . DS . $filename;
 
         file_put_contents($pathname, $output, FILE_APPEND);
     }
@@ -60,19 +147,19 @@ class File extends AbstractLogger
     {
         $debugTypes = ['notice', 'info', 'debug'];
         $errorTypes = ['emergency', 'alert', 'critical', 'error', 'warning'];
-        return $this->_file ? $this->_file : in_array($level, $errorTypes) ? 'error.log' : in_array($level, $debugTypes) ? 'debug.log' : $level . '.log';
+        return $this->file ? $this->file : in_array($level, $errorTypes) ? 'error.log' : in_array($level, $debugTypes) ? 'debug.log' : $level . '.log';
     }
 
     private function rotateFile($filename)
     {
-        $file_path = $this->_path . $filename;
+        $file_path = $this->path . $filename;
         clearstatcache(true, $file_path);
 
-        if (!file_exists($file_path) || filesize($file_path) < $this->_size) {
+        if (!file_exists($file_path) || filesize($file_path) < $this->size) {
             return null;
         }
 
-        $rotate = $this->_config['rotate'];
+        $rotate = $this->config['rotate'];
         if ($rotate === 0) {
             $result = unlink($file_path);
         } else {
