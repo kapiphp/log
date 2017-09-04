@@ -28,7 +28,7 @@ class File extends AbstractLogger
 
     public function __construct(array $config = [])
     {
-        $this->setConfig($config, false);
+        $this->setConfig($config);
 
         if (!empty($this->config['path'])) {
             $this->path = $this->config['path'];
@@ -53,10 +53,9 @@ class File extends AbstractLogger
         }
     }
 
-    public function setConfig(array $config, $merge = true)
+    public function setConfig(array $config)
     {
-        if (!$merge) $this->config = Config::read('log');
-        $this->config = array_merge($this->config, $config);
+        $this->config = $config;
     }
 
     /**
@@ -112,7 +111,7 @@ class File extends AbstractLogger
             $this->rotateFile($filename);
         }
 
-        $pathname = $this->path . DS . $filename;
+        $pathname = $this->path . DIRECTORY_SEPARATOR . $filename;
 
         file_put_contents($pathname, $output, FILE_APPEND);
     }
