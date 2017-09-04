@@ -14,7 +14,7 @@ class File extends AbstractLogger
     /**
      * @var mixed
      */
-    private $path;
+    private $path = 'log';
 
     /**
      * @var string
